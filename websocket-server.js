@@ -1,14 +1,14 @@
 import { WebSocketServer } from "ws";
 import readline from "readline";
+import chalk from "chalk";
 
 const server = new WebSocketServer({ port: 8080 });
-const clients = new Map(); // socket => username
+const clients = new Map();
 
-console.log("Servidor WebSocket ejecutándose en ws://localhost:8080");
+console.log(chalk.green("Servidor WebSocket ejecutándose en ws://localhost:8080"));
 
-// Nueva conexión
 server.on("connection", (socket) => {
-  console.log("Cliente conectado. Esperando nombre de usuario...");
+  console.log(chalk.gray("Cliente conectado. Esperando nombre de usuario..."));
 
   let usernameSet = false;
 
@@ -18,47 +18,39 @@ server.on("connection", (socket) => {
       clients.set(socket, username);
       usernameSet = true;
 
-      console.log(`Usuario conectado: ${username}`);
-
-      // Notificar a todos
-      broadcast(`[Servidor]: El usuario "${username}" se ha unido al chat.`, socket);
+      console.log(chalk.blue(`Usuario conectado: ${username}`));
+      broadcast(chalk.magenta(`[Servidor]: El usuario "${username}" se ha unido al chat.`), socket);
       return;
     }
 
     const username = clients.get(socket);
-    const mensaje = `${username}: ${message}`;
-    console.log(mensaje);
-
-    broadcast(mensaje, socket); // A todos menos al remitente
+    const formatted = chalk.cyan(`${username}: ${message}`);
+    console.log(formatted);
+    broadcast(formatted, socket);
   });
 
   socket.on("close", () => {
     const username = clients.get(socket);
     clients.delete(socket);
     if (username) {
-      console.log(`Usuario desconectado: ${username}`);
-      broadcast(`[Servidor]: El usuario "${username}" ha salido del chat.`);
+      console.log(chalk.red(`Usuario desconectado: ${username}`));
+      broadcast(chalk.magenta(`[Servidor]: El usuario "${username}" ha salido del chat.`));
     }
   });
 });
 
-// Función para enviar a todos (opcionalmente excluyendo a uno)
 function broadcast(message, excludeSocket = null) {
-  for (const [client, _] of clients) {
+  for (const [client] of clients) {
     if (client.readyState === client.OPEN && client !== excludeSocket) {
       client.send(message);
     }
   }
 }
 
-// Entrada por consola del servidor
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 rl.on("line", (input) => {
-  const mensaje = `[Servidor]: ${input}`;
-  console.log(`(tú): ${mensaje}`);
+  const mensaje = chalk.magenta(`[Servidor]: ${input}`);
+  console.log(mensaje);
   broadcast(mensaje);
 });
